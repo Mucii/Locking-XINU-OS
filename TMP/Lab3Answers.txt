@@ -1,0 +1,51 @@
+Ans 1)
+
+Part 1: There are multiple approaches to priority inversion problem other than priority inheritance. 
+One such mechanism is randoom boosting. In random boosting, the priority of the processes already holding the locks is 
+increased randomly until the lower priority processes execute till the end of critical section so that the higher priority processes can enter the critical section. If the low-priority thread doesn't get enough CPU time to exit the critical section, it will be given another chance during the next round of scheduling.
+
+References : (1) https://msdn.microsoft.com/en-us/library/windows/desktop/ms684831(v=vs.85).aspx
+             (2) https://en.wikipedia.org/wiki/Priority_inversion
+
+
+
+Part 2:
+Scenario : Three processes p1(prio = 10), p2(prio = 20), p3(prio = 30) were created. p1 acquires a lock before p3. Hence, p3 has to wait for p1 to complete its critical section. Process p2 continues its execution normally.
+
+In the lock implementation, As p3 is waiting for p1, its priority has been ramped up to 30 till A completes its critical section and is then reset to 10 (both can be verified in the output). Sometimes, process p2 might finish its execution within a single timer interrupt which might make it appear that p2 has more priority than p1's new priority(30).
+
+In the Semaphore implementation, even though p3 is waiting for p1, p1 priority is the same(10). Hence, A is executed after B is executed. Only after A's completion, C is executed. This makes C(higher priority process) to wait till B's completion.
+
+Sample output of task1.c: 
+
+--------------- Testing with Locks ----------------------
+p2(priority = 20) has started
+p1(priority = 10) is requesting to enter critical section
+p1(priority = 10) has entered critical section
+p3(priority = 30) is requesting to enter critical section
+Hence, ramping up the priority of p1
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+p1 has completed critical section(ramped up priority = 30)
+p3(priority = 30) has entered critical section
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+p3 has completed critical section
+BBBBBBBBBBBBBBBBBBBBBBB
+p2 has completed its execution
+p1 original priority = 10
+--------------- Testing with Semaphores -----------------
+p2(priority = 20) has started
+p1(priority = 10) is requesting to enter critical section
+p1(priority = 10) has entered critical section
+p3(priority = 30) is requesting to enter critical section
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+p2 has completed its execution
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+p1 has completed critical section(priority = 10)
+p3(priority = 30) has entered critical section
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+p3 has completed critical section
+
+
+
+Ans 2) do_update() function acquires reader lock and tries to perform try_update() which might cause inconsistent updates. When a low priority process is executing the critical section, a higher priorty process might enter in between, pre-empt the low priority process and update the global variables global_buf and global_buf causing inconsistency. Eventually, the low priority process overwrites the global variables and updates them with its own values.
+
